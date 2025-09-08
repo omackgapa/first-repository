@@ -3,7 +3,7 @@
 # requires-python = ">=3.11"
 # dependencies = [
 #     "typer",
-#     "rich",
+#     "rich",1
 #     "platformdirs",
 #     "readchar",
 #     "httpx",
