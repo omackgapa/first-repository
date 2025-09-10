@@ -1,0 +1,1171 @@
+# 파이썬 웹 크롤링 및 데이터 분석 강의자료
+## 3~4시간 완성 과정
+
+---
+
+## 📋 강의 개요
+
+**강의 목표**: 파이썬을 활용한 웹 크롤링 기술 습득 및 수집한 데이터의 분석 능력 배양
+
+**필요 도구**: Python 3.8+, VS Code, Chrome 브라우저
+
+---
+
+## 📚 목차
+
+### 1교시 (60분): 웹 크롤링 기초 이론 및 환경 설정
+### 2교시 (60분): Beautiful Soup를 활용한 정적 웹페이지 크롤링
+### 3교시 (60분): Selenium을 활용한 동적 웹페이지 크롤링
+### 4교시 (60분): 데이터 분석 및 시각화
+
+---
+
+## 🎯 1교시: 웹 크롤링 기초 이론 및 환경 설정 (60분)
+
+### 1.1 웹 크롤링이란? (15분)
+
+웹 크롤링(Web Crawling)은 웹페이지의 정보를 자동으로 수집하는 기술입니다.
+
+**주요 용도**:
+- 가격 비교 사이트 데이터 수집
+- 뉴스 기사 수집 및 분석
+- 소셜미디어 트렌드 분석
+- 부동산 정보 수집
+- 학술 논문 데이터 수집
+
+**크롤링 vs 스크래핑**:
+- **크롤링**: 웹사이트를 체계적으로 탐색하여 링크를 따라가며 데이터 수집
+- **스크래핑**: 특정 웹페이지에서 필요한 데이터만 추출
+
+### 1.2 법적 고려사항 및 윤리적 크롤링 (10분)
+
+**꼭 지켜야 할 원칙들**:
+
+1. **robots.txt 확인**: `도메인/robots.txt`에서 크롤링 정책 확인
+2. **이용약관 준수**: 사이트의 Terms of Service 확인
+3. **요청 간격 조절**: 서버에 부하를 주지 않도록 적절한 딜레이 설정
+4. **개인정보 보호**: 개인정보는 수집하지 않기
+5. **저작권 존중**: 수집한 데이터의 상업적 이용 시 주의
+
+```python
+# robots.txt 확인 예제
+import requests
+
+def check_robots_txt(domain):
+    robots_url = f"{domain}/robots.txt"
+    try:
+        response = requests.get(robots_url)
+        print(f"=== {domain}의 robots.txt ===")
+        print(response.text)
+    except Exception as e:
+        print(f"robots.txt를 확인할 수 없습니다: {e}")
+
+# 사용 예시
+check_robots_txt("https://example.com")
+```
+
+### 1.3 HTML 구조 이해 (15분)
+
+웹페이지는 HTML, CSS, JavaScript로 구성됩니다.
+
+**HTML 기본 구조**:
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>페이지 제목</title>
+</head>
+<body>
+    <h1 class="title">메인 제목</h1>
+    <div id="content">
+        <p class="description">설명 텍스트</p>
+        <ul class="list">
+            <li>항목 1</li>
+            <li>항목 2</li>
+        </ul>
+    </div>
+</body>
+</html>
+```
+
+**CSS 선택자 이해**:
+- **태그 선택자**: `h1`, `p`, `div`
+- **클래스 선택자**: `.title`, `.description`
+- **ID 선택자**: `#content`
+- **복합 선택자**: `div.content p`, `ul > li`
+
+### 1.4 환경 설정 및 라이브러리 설치 (20분)
+
+**필수 라이브러리 설치**:
+
+```bash
+# 기본 웹 크롤링 라이브러리
+pip install requests beautifulsoup4 lxml
+
+# 동적 크롤링을 위한 Selenium
+pip install selenium
+
+# 데이터 분석을 위한 라이브러리
+pip install pandas numpy matplotlib seaborn
+
+# 웹드라이버 관리 (Chrome)
+pip install webdriver-manager
+
+# 기타 유용한 라이브러리
+pip install fake-useragent time
+```
+
+**기본 설정 코드**:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import numpy as np
+import time
+import random
+from fake_useragent import UserAgent
+
+# User-Agent 설정 (봇 차단 방지)
+ua = UserAgent()
+
+# 기본 헤더 설정
+headers = {
+    'User-Agent': ua.random,
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3',
+    'Accept-Encoding': 'gzip, deflate',
+    'Connection': 'keep-alive',
+}
+
+# 세션 생성 (연결 재사용으로 성능 향상)
+session = requests.Session()
+session.headers.update(headers)
+
+print("환경 설정이 완료되었습니다!")
+```
+
+---
+
+## 🕷️ 2교시: Beautiful Soup를 활용한 정적 웹페이지 크롤링 (60분)
+
+### 2.1 requests와 Beautiful Soup 기본 사용법 (20분)
+
+**기본 크롤링 워크플로우**:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+import time
+
+def basic_crawling_example():
+    # 1. 웹페이지 요청
+    url = "https://httpbin.org/html"
+    response = requests.get(url, headers=headers)
+    
+    # 2. 응답 상태 확인
+    if response.status_code == 200:
+        print("✅ 페이지 요청 성공!")
+    else:
+        print(f"❌ 페이지 요청 실패: {response.status_code}")
+        return
+    
+    # 3. HTML 파싱
+    soup = BeautifulSoup(response.content, 'html.parser')
+    
+    # 4. 원하는 데이터 추출
+    title = soup.find('title').text
+    print(f"페이지 제목: {title}")
+    
+    # 5. 모든 링크 추출
+    links = soup.find_all('a')
+    for link in links:
+        href = link.get('href')
+        text = link.text.strip()
+        print(f"링크: {text} -> {href}")
+
+# 실행
+basic_crawling_example()
+```
+
+**Beautiful Soup 주요 메서드**:
+
+```python
+def beautifulsoup_methods_demo():
+    html = '''
+    <div class="container">
+        <h1 id="main-title">메인 제목</h1>
+        <p class="description">첫 번째 설명</p>
+        <p class="description">두 번째 설명</p>
+        <ul class="item-list">
+            <li data-value="1">항목 1</li>
+            <li data-value="2">항목 2</li>
+            <li data-value="3">항목 3</li>
+        </ul>
+    </div>
+    '''
+    
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # 1. find() - 첫 번째 요소만 찾기
+    first_p = soup.find('p', class_='description')
+    print(f"첫 번째 p 태그: {first_p.text}")
+    
+    # 2. find_all() - 모든 요소 찾기
+    all_p = soup.find_all('p', class_='description')
+    print(f"모든 p 태그 개수: {len(all_p)}")
+    
+    # 3. select() - CSS 선택자 사용
+    items = soup.select('ul.item-list li')
+    for item in items:
+        value = item.get('data-value')
+        text = item.text
+        print(f"항목 {value}: {text}")
+    
+    # 4. 속성 값 가져오기
+    title_id = soup.find('h1').get('id')
+    print(f"제목의 ID: {title_id}")
+
+beautifulsoup_methods_demo()
+```
+
+### 2.2 실습 1: 뉴스 헤드라인 크롤링 (25분)
+
+실제 뉴스 사이트에서 헤드라인을 수집하는 실습입니다.
+
+```python
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
+from datetime import datetime
+
+def crawl_news_headlines():
+    """
+    뉴스 헤드라인 크롤링 함수
+    (예시: 실제 사이트 구조에 맞게 수정 필요)
+    """
+    
+    # 예시 URL (실제로는 허가된 뉴스 사이트 사용)
+    base_url = "https://httpbin.org/html"  # 테스트용 URL
+    
+    news_data = []
+    
+    try:
+        # 페이지 요청
+        response = session.get(base_url)
+        response.raise_for_status()  # HTTP 에러 발생 시 예외 처리
+        
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # 실제 뉴스 사이트의 구조에 맞게 수정
+        # 예시: headlines = soup.find_all('h2', class_='headline')
+        
+        # 테스트용 데이터 생성
+        headlines = ["AI 기술 발전 가속화", "파이썬 인기 지속 상승", "데이터 분석 시장 확대"]
+        
+        for i, headline in enumerate(headlines, 1):
+            news_item = {
+                'title': headline,
+                'url': f"https://example.com/news/{i}",
+                'crawl_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+            news_data.append(news_item)
+            
+        print(f"✅ {len(news_data)}개의 뉴스 헤드라인 수집 완료!")
+        
+    except Exception as e:
+        print(f"❌ 크롤링 중 오류 발생: {e}")
+    
+    return news_data
+
+def save_news_data(news_data):
+    """수집한 뉴스 데이터를 CSV 파일로 저장"""
+    if news_data:
+        df = pd.DataFrame(news_data)
+        filename = f"news_headlines_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        df.to_csv(filename, index=False, encoding='utf-8-sig')
+        print(f"✅ 데이터가 {filename}에 저장되었습니다.")
+        return df
+    else:
+        print("❌ 저장할 데이터가 없습니다.")
+        return None
+
+# 실행
+news_data = crawl_news_headlines()
+df = save_news_data(news_data)
+if df is not None:
+    print("\n📊 수집된 데이터 미리보기:")
+    print(df.head())
+```
+
+### 2.3 에러 처리 및 재시도 로직 (15분)
+
+안정적인 크롤링을 위한 에러 처리 방법입니다.
+
+```python
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+import time
+import random
+
+class RobustCrawler:
+    def __init__(self, max_retries=3, backoff_factor=1):
+        self.session = requests.Session()
+        
+        # 재시도 전략 설정
+        retry_strategy = Retry(
+            total=max_retries,
+            status_forcelist=[429, 500, 502, 503, 504],
+            method_whitelist=["HEAD", "GET", "OPTIONS"],
+            backoff_factor=backoff_factor
+        )
+        
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+        
+        # 기본 헤더 설정
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+    
+    def get_page(self, url, timeout=10):
+        """안전한 페이지 요청"""
+        try:
+            # 랜덤 딜레이 (1-3초)
+            time.sleep(random.uniform(1, 3))
+            
+            response = self.session.get(url, timeout=timeout)
+            response.raise_for_status()
+            
+            print(f"✅ 성공: {url}")
+            return response
+            
+        except requests.exceptions.RequestException as e:
+            print(f"❌ 요청 실패 ({url}): {e}")
+            return None
+        except Exception as e:
+            print(f"❌ 예상치 못한 오류 ({url}): {e}")
+            return None
+    
+    def parse_with_retry(self, url, parser_func):
+        """파싱 함수와 함께 재시도"""
+        response = self.get_page(url)
+        if response:
+            try:
+                return parser_func(response)
+            except Exception as e:
+                print(f"❌ 파싱 오류 ({url}): {e}")
+                return None
+        return None
+
+# 사용 예시
+def example_parser(response):
+    soup = BeautifulSoup(response.content, 'html.parser')
+    title = soup.find('title')
+    return title.text if title else "제목 없음"
+
+# 크롤러 사용
+crawler = RobustCrawler()
+result = crawler.parse_with_retry("https://httpbin.org/html", example_parser)
+print(f"파싱 결과: {result}")
+```
+
+---
+
+## 🤖 3교시: Selenium을 활용한 동적 웹페이지 크롤링 (60분)
+
+### 3.1 Selenium 기본 설정 및 사용법 (20분)
+
+JavaScript로 동적으로 생성되는 콘텐츠를 크롤링하기 위해 Selenium을 사용합니다.
+
+```python
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+import time
+
+class SeleniumCrawler:
+    def __init__(self, headless=True):
+        """
+        Selenium 크롤러 초기화
+        headless: True면 브라우저 창을 보이지 않게 실행
+        """
+        self.options = Options()
+        
+        if headless:
+            self.options.add_argument('--headless')
+        
+        # 성능 최적화 옵션
+        self.options.add_argument('--no-sandbox')
+        self.options.add_argument('--disable-dev-shm-usage')
+        self.options.add_argument('--disable-gpu')
+        self.options.add_argument('--window-size=1920,1080')
+        
+        # 봇 탐지 방지
+        self.options.add_argument('--disable-blink-features=AutomationControlled')
+        self.options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        self.options.add_experimental_option('useAutomationExtension', False)
+        
+        self.driver = None
+    
+    def start_driver(self):
+        """드라이버 시작"""
+        try:
+            self.driver = webdriver.Chrome(
+                service=webdriver.chrome.service.Service(ChromeDriverManager().install()),
+                options=self.options
+            )
+            
+            # 봇 탐지 방지 스크립트
+            self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            
+            print("✅ Selenium 드라이버가 시작되었습니다.")
+            return True
+            
+        except Exception as e:
+            print(f"❌ 드라이버 시작 실패: {e}")
+            return False
+    
+    def get_page(self, url, wait_seconds=10):
+        """페이지 로드 및 대기"""
+        if not self.driver:
+            print("❌ 드라이버가 시작되지 않았습니다.")
+            return False
+        
+        try:
+            self.driver.get(url)
+            
+            # 페이지 로드 완료 대기
+            WebDriverWait(self.driver, wait_seconds).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            )
+            
+            print(f"✅ 페이지 로드 완료: {url}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ 페이지 로드 실패: {e}")
+            return False
+    
+    def wait_for_element(self, by, value, timeout=10):
+        """특정 요소가 나타날 때까지 대기"""
+        try:
+            element = WebDriverWait(self.driver, timeout).until(
+                EC.presence_of_element_located((by, value))
+            )
+            return element
+        except Exception as e:
+            print(f"❌ 요소 대기 시간 초과: {e}")
+            return None
+    
+    def close(self):
+        """드라이버 종료"""
+        if self.driver:
+            self.driver.quit()
+            print("✅ 드라이버가 종료되었습니다.")
+
+# 기본 사용 예시
+def selenium_basic_example():
+    crawler = SeleniumCrawler(headless=False)  # 브라우저 창 보이게 설정
+    
+    if crawler.start_driver():
+        # 테스트 페이지 방문
+        if crawler.get_page("https://httpbin.org/forms/post"):
+            
+            # 페이지 제목 가져오기
+            title = crawler.driver.title
+            print(f"페이지 제목: {title}")
+            
+            # 폼 요소 찾기
+            try:
+                input_field = crawler.driver.find_element(By.NAME, "custname")
+                input_field.send_keys("테스트 사용자")
+                print("✅ 텍스트 입력 완료")
+                
+                time.sleep(2)  # 잠시 대기
+                
+            except Exception as e:
+                print(f"❌ 요소 조작 실패: {e}")
+        
+        crawler.close()
+
+# 실행
+selenium_basic_example()
+```
+
+### 3.2 동적 콘텐츠 처리 및 대기 전략 (20분)
+
+JavaScript로 로드되는 콘텐츠를 효과적으로 처리하는 방법입니다.
+
+```python
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
+
+def dynamic_content_handling():
+    """동적 콘텐츠 처리 예제"""
+    crawler = SeleniumCrawler(headless=False)
+    
+    if not crawler.start_driver():
+        return
+    
+    try:
+        # 동적 콘텐츠가 있는 테스트 페이지
+        test_url = "https://the-internet.herokuapp.com/dynamic_loading/1"
+        
+        if crawler.get_page(test_url):
+            
+            # 1. 버튼 클릭하여 동적 콘텐츠 로드
+            start_button = crawler.driver.find_element(By.CSS_SELECTOR, "#start button")
+            start_button.click()
+            print("✅ 시작 버튼 클릭")
+            
+            # 2. 로딩 완료까지 대기 (명시적 대기)
+            hidden_element = crawler.wait_for_element(By.ID, "finish", timeout=10)
+            
+            if hidden_element:
+                result_text = hidden_element.text
+                print(f"✅ 동적 로드 완료: {result_text}")
+            else:
+                print("❌ 동적 콘텐츠 로드 실패")
+    
+    except Exception as e:
+        print(f"❌ 처리 중 오류: {e}")
+    
+    finally:
+        crawler.close()
+
+def advanced_interactions():
+    """고급 상호작용 예제"""
+    crawler = SeleniumCrawler(headless=False)
+    
+    if not crawler.start_driver():
+        return
+    
+    try:
+        # 드롭다운 및 호버 테스트 페이지
+        test_url = "https://the-internet.herokuapp.com/dropdown"
+        
+        if crawler.get_page(test_url):
+            
+            # 1. 드롭다운 선택
+            dropdown = Select(crawler.driver.find_element(By.ID, "dropdown"))
+            dropdown.select_by_visible_text("Option 1")
+            print("✅ 드롭다운 선택 완료")
+            
+            time.sleep(2)
+            
+            # 2. 호버 테스트
+            hover_url = "https://the-internet.herokuapp.com/hovers"
+            crawler.get_page(hover_url)
+            
+            # 첫 번째 이미지에 마우스 호버
+            first_image = crawler.driver.find_element(By.CSS_SELECTOR, ".figure img")
+            actions = ActionChains(crawler.driver)
+            actions.move_to_element(first_image).perform()
+            
+            # 호버 시 나타나는 텍스트 대기
+            hover_text = crawler.wait_for_element(By.CSS_SELECTOR, ".figcaption h5")
+            if hover_text:
+                print(f"✅ 호버 텍스트: {hover_text.text}")
+            
+            # 3. 스크롤 처리
+            crawler.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            print("✅ 페이지 하단으로 스크롤")
+            
+            time.sleep(2)
+    
+    except Exception as e:
+        print(f"❌ 처리 중 오류: {e}")
+    
+    finally:
+        crawler.close()
+
+# 실행
+dynamic_content_handling()
+advanced_interactions()
+```
+
+### 3.3 실습 2: 무한 스크롤 페이지 크롤링 (20분)
+
+소셜미디어나 뉴스 피드와 같은 무한 스크롤 페이지를 크롤링하는 방법입니다.
+
+```python
+def infinite_scroll_crawling():
+    """무한 스크롤 페이지 크롤링 예제"""
+    crawler = SeleniumCrawler(headless=False)
+    
+    if not crawler.start_driver():
+        return []
+    
+    collected_data = []
+    
+    try:
+        # 무한 스크롤 테스트 페이지
+        test_url = "https://the-internet.herokuapp.com/infinite_scroll"
+        
+        if crawler.get_page(test_url):
+            
+            last_height = crawler.driver.execute_script("return document.body.scrollHeight")
+            scroll_count = 0
+            max_scrolls = 5  # 최대 스크롤 횟수 제한
+            
+            while scroll_count < max_scrolls:
+                
+                # 현재 페이지의 데이터 수집
+                elements = crawler.driver.find_elements(By.CSS_SELECTOR, ".jscroll-added")
+                current_count = len(elements)
+                
+                print(f"스크롤 {scroll_count + 1}: {current_count}개 요소 발견")
+                
+                # 페이지 끝까지 스크롤
+                crawler.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                
+                # 새 콘텐츠 로드 대기
+                time.sleep(2)
+                
+                # 새로운 높이 확인
+                new_height = crawler.driver.execute_script("return document.body.scrollHeight")
+                
+                # 더 이상 새 콘텐츠가 없으면 중단
+                if new_height == last_height:
+                    print("✅ 더 이상 로드할 콘텐츠가 없습니다.")
+                    break
+                
+                last_height = new_height
+                scroll_count += 1
+            
+            # 최종 데이터 수집
+            final_elements = crawler.driver.find_elements(By.CSS_SELECTOR, ".jscroll-added")
+            
+            for i, element in enumerate(final_elements, 1):
+                try:
+                    text_content = element.text.strip()
+                    if text_content:
+                        collected_data.append({
+                            'index': i,
+                            'content': text_content,
+                            'collected_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        })
+                except Exception as e:
+                    print(f"❌ 요소 {i} 처리 실패: {e}")
+            
+            print(f"✅ 총 {len(collected_data)}개 데이터 수집 완료")
+    
+    except Exception as e:
+        print(f"❌ 무한 스크롤 크롤링 실패: {e}")
+    
+    finally:
+        crawler.close()
+    
+    return collected_data
+
+def save_scroll_data(data):
+    """무한 스크롤 데이터 저장"""
+    if data:
+        df = pd.DataFrame(data)
+        filename = f"infinite_scroll_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        df.to_csv(filename, index=False, encoding='utf-8-sig')
+        print(f"✅ 무한 스크롤 데이터가 {filename}에 저장되었습니다.")
+        
+        # 데이터 요약 출력
+        print(f"\n📊 수집 데이터 요약:")
+        print(f"- 총 항목 수: {len(df)}")
+        print(f"- 수집 시간 범위: {df['collected_at'].min()} ~ {df['collected_at'].max()}")
+        
+        return df
+    else:
+        print("❌ 저장할 데이터가 없습니다.")
+        return None
+
+# 실행
+scroll_data = infinite_scroll_crawling()
+df_scroll = save_scroll_data(scroll_data)
+```
+
+---
+
+## 📊 4교시: 데이터 분석 및 시각화 (60분 + alpha)
+
+### 4.1 수집된 데이터 전처리 (20분)
+
+크롤링한 데이터를 분석하기 전에 정제하는 과정입니다.
+
+```python
+import pandas as pd
+import numpy as np
+import re
+import matplotlib.pyplot as plt
+import seaborn as sns
+from collections import Counter
+from wordcloud import WordCloud
+import matplotlib.font_manager as fm
+
+# 한글 폰트 설정 (Windows 환경)
+plt.rcParams['font.family'] = 'Malgun Gothic'
+plt.rcParams['axes.unicode_minus'] = False
+
+def create_sample_data():
+    """분석용 샘플 데이터 생성"""
+    np.random.seed(42)
+    
+    categories = ['기술', '경제', '문화', '스포츠', '정치']
+    sources = ['뉴스A', '뉴스B', '뉴스C', '뉴스D']
+    
+    sample_data = []
+    
+    for i in range(100):
+        title = f"뉴스 제목 {i+1}: {np.random.choice(categories)} 관련 기사"
+        
+        # 제목에 특정 키워드 추가
+        if '기술' in title:
+            title += " AI, 빅데이터, 클라우드"
+        elif '경제' in title:
+            title += " 주식, 투자, 금리"
+        elif '문화' in title:
+            title += " 예술, 음악, 영화"
+        
+        sample_data.append({
+            'title': title,
+            'category': np.random.choice(categories),
+            'source': np.random.choice(sources),
+            'views': np.random.randint(100, 10000),
+            'comments': np.random.randint(0, 500),
+            'date': pd.date_range('2024-01-01', periods=30, freq='D')[i % 30],
+            'content_length': np.random.randint(500, 3000)
+        })
+    
+    return pd.DataFrame(sample_data)
+
+def data_preprocessing(df):
+    """데이터 전처리 함수"""
+    print("📊 원본 데이터 정보:")
+    print(f"- 총 레코드 수: {len(df)}")
+    print(f"- 컬럼 수: {len(df.columns)}")
+    print(f"- 결측값: {df.isnull().sum().sum()}개")
+    
+    # 1. 결측값 처리
+    df_clean = df.copy()
+    df_clean = df_clean.dropna()
+    
+    # 2. 중복 제거
+    initial_count = len(df_clean)
+    df_clean = df_clean.drop_duplicates(subset=['title'])
+    removed_count = initial_count - len(df_clean)
+    if removed_count > 0:
+        print(f"✅ {removed_count}개 중복 레코드 제거")
+    
+    # 3. 날짜 형식 통일
+    df_clean['date'] = pd.to_datetime(df_clean['date'])
+    
+    # 4. 텍스트 정제 (제목)
+    df_clean['title_clean'] = df_clean['title'].apply(clean_text)
+    
+    # 5. 파생 변수 생성
+    df_clean['engagement_ratio'] = df_clean['comments'] / (df_clean['views'] + 1)
+    df_clean['date_str'] = df_clean['date'].dt.strftime('%Y-%m-%d')
+    df_clean['weekday'] = df_clean['date'].dt.day_name()
+    
+    print(f"✅ 전처리 완료: {len(df_clean)}개 레코드")
+    
+    return df_clean
+
+def clean_text(text):
+    """텍스트 정제 함수"""
+    if pd.isna(text):
+        return ""
+    
+    # 특수문자 제거 (한글, 영문, 숫자, 공백만 유지)
+    text = re.sub(r'[^가-힣a-zA-Z0-9\s]', '', str(text))
+    
+    # 연속된 공백을 하나로 변경
+    text = re.sub(r'\s+', ' ', text)
+    
+    # 앞뒤 공백 제거
+    text = text.strip()
+    
+    return text
+
+def extract_keywords(text_series):
+    """키워드 추출 함수"""
+    # 모든 텍스트를 하나로 합치기
+    all_text = ' '.join(text_series.astype(str))
+    
+    # 단어 분리 (간단한 공백 기준)
+    words = all_text.split()
+    
+    # 불용어 제거 (간단한 예시)
+    stop_words = {'의', '가', '이', '은', '는', '을', '를', '에', '와', '과', '으로', '로', '에서', '와', '과', '뉴스', '기사', '관련'}
+    words = [word for word in words if len(word) > 1 and word not in stop_words]
+    
+    # 빈도 계산
+    word_freq = Counter(words)
+    
+    return word_freq.most_common(20)
+
+# 데이터 생성 및 전처리 실행
+sample_df = create_sample_data()
+clean_df = data_preprocessing(sample_df)
+
+print("\n📋 전처리된 데이터 미리보기:")
+print(clean_df.head())
+
+print("\n🔍 기본 통계:")
+print(clean_df.describe())
+```
+
+### 4.2 탐색적 데이터 분석 (EDA) (25분)
+
+수집된 데이터의 패턴과 특성을 파악하는 분석입니다.
+
+```python
+def exploratory_data_analysis(df):
+    """탐색적 데이터 분석"""
+    
+    # 그래프 스타일 설정
+    plt.style.use('seaborn-v0_8')
+    fig = plt.figure(figsize=(20, 15))
+    
+    # 1. 카테고리별 기사 수
+    plt.subplot(2, 3, 1)
+    category_counts = df['category'].value_counts()
+    plt.pie(category_counts.values, labels=category_counts.index, autopct='%1.1f%%')
+    plt.title('카테고리별 기사 분포', fontsize=14, fontweight='bold')
+    
+    # 2. 시간별 기사 발행 추이
+    plt.subplot(2, 3, 2)
+    daily_counts = df.groupby('date_str').size()
+    plt.plot(range(len(daily_counts)), daily_counts.values, marker='o')
+    plt.title('일별 기사 발행 수', fontsize=14, fontweight='bold')
+    plt.xlabel('일자')
+    plt.ylabel('기사 수')
+    plt.xticks(rotation=45)
+    
+    # 3. 조회수 분포
+    plt.subplot(2, 3, 3)
+    plt.hist(df['views'], bins=20, alpha=0.7, color='skyblue')
+    plt.title('조회수 분포', fontsize=14, fontweight='bold')
+    plt.xlabel('조회수')
+    plt.ylabel('빈도')
+    
+    # 4. 카테고리별 평균 조회수
+    plt.subplot(2, 3, 4)
+    category_views = df.groupby('category')['views'].mean().sort_values(ascending=False)
+    plt.bar(category_views.index, category_views.values, color='lightcoral')
+    plt.title('카테고리별 평균 조회수', fontsize=14, fontweight='bold')
+    plt.xlabel('카테고리')
+    plt.ylabel('평균 조회수')
+    plt.xticks(rotation=45)
+    
+    # 5. 조회수 vs 댓글 수 상관관계
+    plt.subplot(2, 3, 5)
+    plt.scatter(df['views'], df['comments'], alpha=0.6)
+    plt.title('조회수 vs 댓글 수', fontsize=14, fontweight='bold')
+    plt.xlabel('조회수')
+    plt.ylabel('댓글 수')
+    
+    # 상관계수 계산
+    correlation = df['views'].corr(df['comments'])
+    plt.text(0.05, 0.95, f'상관계수: {correlation:.3f}', 
+             transform=plt.gca().transAxes, fontsize=12, 
+             bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7))
+    
+    # 6. 요일별 참여도 분석
+    plt.subplot(2, 3, 6)
+    weekday_engagement = df.groupby('weekday')['engagement_ratio'].mean()
+    weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    weekday_engagement = weekday_engagement.reindex(weekday_order)
+    
+    plt.bar(range(len(weekday_engagement)), weekday_engagement.values, color='lightgreen')
+    plt.title('요일별 평균 참여도', fontsize=14, fontweight='bold')
+    plt.xlabel('요일')
+    plt.ylabel('참여도 (댓글/조회)')
+    plt.xticks(range(len(weekday_engagement)), 
+               ['월', '화', '수', '목', '금', '토', '일'], rotation=45)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # 기본 통계 출력
+    print("📊 주요 통계 정보:")
+    print(f"• 평균 조회수: {df['views'].mean():.0f}")
+    print(f"• 평균 댓글 수: {df['comments'].mean():.1f}")
+    print(f"• 가장 인기 있는 카테고리: {df['category'].mode()[0]}")
+    print(f"• 조회수 상위 10% 기준: {df['views'].quantile(0.9):.0f}")
+
+def correlation_analysis(df):
+    """상관관계 분석"""
+    # 수치형 변수들의 상관관계 매트릭스
+    numeric_cols = ['views', 'comments', 'content_length', 'engagement_ratio']
+    correlation_matrix = df[numeric_cols].corr()
+    
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', center=0,
+                square=True, linewidths=0.5)
+    plt.title('변수 간 상관관계 매트릭스', fontsize=16, fontweight='bold')
+    plt.show()
+    
+    print("🔍 주요 상관관계:")
+    for i in range(len(correlation_matrix.columns)):
+        for j in range(i+1, len(correlation_matrix.columns)):
+            corr = correlation_matrix.iloc[i, j]
+            var1 = correlation_matrix.columns[i]
+            var2 = correlation_matrix.columns[j]
+            print(f"• {var1} - {var2}: {corr:.3f}")
+
+# 분석 실행
+exploratory_data_analysis(clean_df)
+correlation_analysis(clean_df)
+```
+
+### 4.3 데이터 시각화 및 인사이트 도출 (15~40분)
+
+분석 결과를 바탕으로 비즈니스 인사이트를 도출합니다.
+
+```python
+def advanced_visualization(df):
+    """고급 시각화 및 인사이트 도출"""
+    
+    # 1. 키워드 분석 및 워드클라우드
+    keywords = extract_keywords(df['title_clean'])
+    
+    if keywords:
+        print("🔍 상위 키워드:")
+        for word, freq in keywords[:10]:
+            print(f"• {word}: {freq}회")
+        
+        # 워드클라우드 생성 (한글 지원 폰트 필요)
+        try:
+            # 키워드 딕셔너리 생성
+            keyword_dict = {word: freq for word, freq in keywords}
+            
+            plt.figure(figsize=(12, 6))
+            
+            # 워드클라우드
+            plt.subplot(1, 2, 1)
+            wordcloud = WordCloud(
+                width=400, height=300,
+                background_color='white',
+                max_words=50,
+                colormap='viridis',
+                font_path='C:/Windows/Fonts/malgun.ttf'  # Windows 한글 폰트
+            ).generate_from_frequencies(keyword_dict)
+            
+            plt.imshow(wordcloud, interpolation='bilinear')
+            plt.axis('off')
+            plt.title('키워드 워드클라우드', fontsize=14, fontweight='bold')
+            
+        except Exception as e:
+            print(f"워드클라우드 생성 실패: {e}")
+            plt.subplot(1, 2, 1)
+            plt.text(0.5, 0.5, '워드클라우드\n생성 실패', 
+                    ha='center', va='center', fontsize=12)
+            plt.title('키워드 워드클라우드', fontsize=14, fontweight='bold')
+        
+        # 키워드 빈도 차트
+        plt.subplot(1, 2, 2)
+        top_keywords = keywords[:10]
+        words, freqs = zip(*top_keywords)
+        
+        plt.barh(range(len(words)), freqs, color='skyblue')
+        plt.yticks(range(len(words)), words)
+        plt.xlabel('빈도')
+        plt.title('상위 10개 키워드', fontsize=14, fontweight='bold')
+        plt.gca().invert_yaxis()
+        
+        plt.tight_layout()
+        plt.show()
+    
+    # 2. 성과 지표 분석
+    plt.figure(figsize=(15, 10))
+    
+    # 2-1. 소스별 성과 비교
+    plt.subplot(2, 2, 1)
+    source_performance = df.groupby('source').agg({
+        'views': 'mean',
+        'comments': 'mean',
+        'engagement_ratio': 'mean'
+    }).round(2)
+    
+    x = range(len(source_performance))
+    width = 0.25
+    
+    plt.bar([i - width for i in x], source_performance['views']/100, width, 
+            label='평균 조회수 (×100)', alpha=0.8)
+    plt.bar(x, source_performance['comments'], width, 
+            label='평균 댓글 수', alpha=0.8)
+    plt.bar([i + width for i in x], source_performance['engagement_ratio']*1000, width, 
+            label='참여도 (×1000)', alpha=0.8)
+    
+    plt.xlabel('뉴스 소스')
+    plt.ylabel('값')
+    plt.title('소스별 성과 비교', fontweight='bold')
+    plt.xticks(x, source_performance.index)
+    plt.legend()
+    
+    # 2-2. 카테고리별 트렌드
+    plt.subplot(2, 2, 2)
+    category_trend = df.groupby(['date_str', 'category']).size().unstack(fill_value=0)
+    
+    for category in category_trend.columns:
+        plt.plot(range(len(category_trend)), category_trend[category], 
+                marker='o', label=category, linewidth=2)
+    
+    plt.xlabel('날짜')
+    plt.ylabel('기사 수')
+    plt.title('카테고리별 발행 트렌드', fontweight='bold')
+    plt.legend()
+    plt.xticks(rotation=45)
+    
+    # 2-3. 인기 기사 특성 분석
+    plt.subplot(2, 2, 3)
+    top_articles = df.nlargest(20, 'views')
+    category_top = top_articles['category'].value_counts()
+    
+    plt.pie(category_top.values, labels=category_top.index, autopct='%1.1f%%')
+    plt.title('인기 기사 상위 20개 카테고리 분포', fontweight='bold')
+    
+    # 2-4. 참여도 분포
+    plt.subplot(2, 2, 4)
+    plt.boxplot([df[df['category'] == cat]['engagement_ratio'] for cat in df['category'].unique()],
+                labels=df['category'].unique())
+    plt.xlabel('카테고리')
+    plt.ylabel('참여도')
+    plt.title('카테고리별 참여도 분포', fontweight='bold')
+    plt.xticks(rotation=45)
+    
+    plt.tight_layout()
+    plt.show()
+
+def generate_insights(df):
+    """데이터 기반 인사이트 생성"""
+    insights = []
+    
+    # 1. 가장 성과가 좋은 카테고리
+    top_category = df.groupby('category')['views'].mean().idxmax()
+    top_category_views = df.groupby('category')['views'].mean().max()
+    insights.append(f"'{top_category}' 카테고리가 평균 {top_category_views:.0f} 조회수로 가장 높은 성과를 보입니다.")
+    
+    # 2. 참여도가 높은 시간대
+    best_weekday = df.groupby('weekday')['engagement_ratio'].mean().idxmax()
+    insights.append(f"{best_weekday}에 발행된 기사의 참여도가 가장 높습니다.")
+    
+    # 3. 조회수와 댓글 수의 관계
+    correlation = df['views'].corr(df['comments'])
+    if correlation > 0.5:
+        insights.append(f"조회수와 댓글 수 간에 강한 양의 상관관계({correlation:.3f})가 있습니다.")
+    elif correlation > 0.3:
+        insights.append(f"조회수와 댓글 수 간에 중간 정도의 양의 상관관계({correlation:.3f})가 있습니다.")
+    
+    # 4. 콘텐츠 길이 최적화
+    optimal_length = df.nlargest(20, 'views')['content_length'].mean()
+    insights.append(f"인기 기사의 평균 콘텐츠 길이는 {optimal_length:.0f}자입니다.")
+    
+    # 5. 소스별 성과 차이
+    source_performance = df.groupby('source')['views'].mean()
+    best_source = source_performance.idxmax()
+    worst_source = source_performance.idxmin()
+    performance_ratio = source_performance.max() / source_performance.min()
+    insights.append(f"'{best_source}'가 '{worst_source}'보다 {performance_ratio:.1f}배 높은 조회수를 기록했습니다.")
+    
+    print("💡 주요 인사이트:")
+    for i, insight in enumerate(insights, 1):
+        print(f"{i}. {insight}")
+    
+    return insights
+
+def create_final_report(df, insights):
+    """최종 분석 리포트 생성"""
+    report = f"""
+📊 웹 크롤링 데이터 분석 리포트
+========================================
+
+📈 데이터 개요
+- 분석 기간: {df['date'].min().strftime('%Y-%m-%d')} ~ {df['date'].max().strftime('%Y-%m-%d')}
+- 총 기사 수: {len(df):,}개
+- 카테고리 수: {df['category'].nunique()}개
+- 뉴스 소스 수: {df['source'].nunique()}개
+
+📊 주요 지표
+- 평균 조회수: {df['views'].mean():.0f}
+- 평균 댓글 수: {df['comments'].mean():.1f}
+- 평균 참여도: {df['engagement_ratio'].mean():.4f}
+- 총 조회수: {df['views'].sum():,}
+
+🔍 카테고리별 성과
+"""
+    
+    category_stats = df.groupby('category').agg({
+        'views': ['count', 'mean', 'sum'],
+        'comments': 'mean',
+        'engagement_ratio': 'mean'
+    }).round(2)
+    
+    for category in category_stats.index:
+        report += f"- {category}: 기사 {category_stats.loc[category, ('views', 'count')]}개, "
+        report += f"평균 조회수 {category_stats.loc[category, ('views', 'mean')]:.0f}\n"
+    
+    report += f"\n💡 핵심 인사이트\n"
+    for i, insight in enumerate(insights, 1):
+        report += f"{i}. {insight}\n"
+    
+    report += f"""
+📋 권장사항
+1. '{df.groupby('category')['views'].mean().idxmax()}' 카테고리 콘텐츠 확대
+2. {df.groupby('weekday')['engagement_ratio'].mean().idxmax()} 발행 스케줄 최적화
+3. 평균 {df.nlargest(20, 'views')['content_length'].mean():.0f}자 길이의 콘텐츠 작성
+4. 상위 키워드 활용한 제목 최적화
+
+리포트 생성일: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+    
+    # 리포트 파일로 저장
+    with open(f"crawling_analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt", 
+              'w', encoding='utf-8') as f:
+        f.write(report)
+    
+    print("📋 분석 리포트:")
+    print(report)
+
+# 시각화 및 인사이트 분석 실행
+advanced_visualization(clean_df)
+insights = generate_insights(clean_df)
+create_final_report(clean_df, insights)
+```
+
+---
+
+## 🎯 마무리 및 실무 적용 가이드
+
+### 추가 학습 자료
+1. **공식 문서**
+   - [Beautiful Soup 문서](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
+   - [Selenium 문서](https://selenium-python.readthedocs.io/)
+   - [Pandas 문서](https://pandas.pydata.org/docs/)
+
+2. **실습 크롤링 사이트**
+   - [Quotes to Scrape](http://quotes.toscrape.com/)
+   - [Books to Scrape](http://books.toscrape.com/)
+   - [The Internet](https://the-internet.herokuapp.com/)
+
+### 프로젝트 아이디어
+1. **뉴스 트렌드 분석기**: 여러 뉴스 사이트에서 헤드라인 수집 후 키워드 트렌드 분석
+2. **부동산 가격 모니터링**: 부동산 사이트에서 매물 정보 수집 및 가격 변화 추적
+3. **소셜미디어 해시태그 분석**: 특정 해시태그의 인기도 변화 모니터링
+4. **전자상거래 가격 비교**: 여러 쇼핑몰의 동일 상품 가격 비교 서비스
+
+### 주의사항 체크리스트
+- [ ] robots.txt 확인
+- [ ] 이용약관 검토
+- [ ] 적절한 딜레이 설정
+- [ ] User-Agent 설정
+- [ ] 에러 처리 구현
+- [ ] 데이터 백업 계획
+- [ ] 개인정보 처리 방침 준수
+
